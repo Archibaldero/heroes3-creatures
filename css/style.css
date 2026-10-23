@@ -331,7 +331,7 @@ td.ab {
 }
 
 .chart-split {
-  --split-icon: 24px;
+  --split-icon: 12px;
   display: grid;
   grid-template-columns: max-content repeat(7, minmax(0, 1fr));
   column-gap: 10px;
