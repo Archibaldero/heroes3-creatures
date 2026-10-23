@@ -329,22 +329,17 @@ td.ab {
 .chart-split {
   display: grid;
   grid-template-columns: max-content repeat(7, minmax(0, 1fr));
-  column-gap: 0.9rem;
+  column-gap: 10px;
   align-items: start;
 }
 
-.split-labels {
-  grid-template-columns: max-content;
-  width: auto;
-  margin-right: -0.9rem;
-}
-
-.split-labels .bar-label {
-  height: 1.55rem;
-}
-
-.split-labels .bar-label::after {
-  display: none;
+.split-head {
+  margin: 0 0 0.28rem;
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1.35;
+  min-height: 1.35em;
+  white-space: nowrap;
 }
 
 .bars {
@@ -358,9 +353,21 @@ td.ab {
   width: 100%;
 }
 
+.bars.split-labels {
+  grid-template-columns: max-content;
+  width: auto;
+}
+
+.bars.split-labels .bar-label {
+  height: 1.55rem;
+}
+
+.bars.split-labels .bar-label::after {
+  display: none;
+}
+
 .bars-plain {
   grid-template-columns: minmax(0, 1fr);
-  padding-left: var(--col-gap);
 }
 
 .bars-plain .bar-scale::before {
@@ -368,14 +375,14 @@ td.ab {
   position: absolute;
   top: 0;
   bottom: calc(var(--row-gap) * -1 - 1px);
-  left: calc(var(--col-gap) * -1);
+  left: 0;
   width: 1px;
-  background: var(--ink);
+  background: var(--axis);
   pointer-events: none;
 }
 
 .bars-plain .bar-scale:last-child::before {
-  bottom: 0;
+  bottom: 50%;
 }
 
 .bar-label {

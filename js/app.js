@@ -857,6 +857,11 @@
     const grid = document.createElement("div");
     grid.className = "chart-split";
 
+    const labelsCol = document.createElement("div");
+    labelsCol.className = "chart";
+    const spacer = document.createElement("div");
+    spacer.className = "split-head";
+    spacer.setAttribute("aria-hidden", "true");
     const labels = document.createElement("div");
     labels.className = "bars split-labels";
     for (const faction of data.factions) {
@@ -871,12 +876,20 @@
       label.append(img, name);
       labels.append(label);
     }
-    grid.append(labels);
+    labelsCol.append(spacer, labels);
+    grid.append(labelsCol);
 
     for (let tier = 1; tier <= 7; tier += 1) {
       const max = tierMax(stat.key, tier);
       const wrap = document.createElement("div");
       wrap.className = "chart";
+      const color = tierColor(tier);
+      wrap.style.setProperty("--axis", color);
+
+      const head = document.createElement("div");
+      head.className = "split-head";
+      head.textContent = "Tier " + tier;
+      wrap.append(head);
 
       const rows = data.factions.map((faction) => {
         const units = sideUnits(faction.id, creatureSide).filter((item) => item.tier === tier);
@@ -889,7 +902,6 @@
 
       const bars = document.createElement("div");
       bars.className = "bars bars-plain";
-      const color = tierColor(tier);
 
       for (const row of rows) {
         const scale = document.createElement("div");
