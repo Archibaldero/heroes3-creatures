@@ -269,25 +269,30 @@ td.ab {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.15rem 1.7rem;
+  gap: 0.15rem 24px;
   margin: 0.95rem 0 0.15rem;
 }
 
 .growth {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.15rem 0.95rem;
+  align-items: baseline;
+  gap: 0.15rem 8px;
+  font-size: 0.72rem;
+}
+
+.growth span {
+  font-weight: 400;
+  padding: 0.14rem 0;
 }
 
 .growth button {
   font: inherit;
-  font-size: 0.78rem;
-  letter-spacing: 0.12em;
-  font-variant: all-small-caps;
+  font-weight: 400;
   color: var(--link);
   background: none;
   border: 0;
-  padding: 0.28rem 0;
+  padding: 0.14rem 0;
   cursor: pointer;
 }
 
@@ -301,23 +306,20 @@ td.ab {
   outline-offset: 2px;
 }
 
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem 0.95rem;
-  margin: 0.85rem 0 0.1rem;
-  color: var(--muted);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  font-variant: all-small-caps;
+.legend span {
+  color: var(--ink);
+  font-weight: 400;
+  font-size: 0.72rem;
+  padding: 0.14rem 0;
+  white-space: nowrap;
 }
 
 .legend i {
   display: inline-block;
-  width: 0.72rem;
-  height: 0.72rem;
+  width: 0.65rem;
+  height: 0.65rem;
   margin-right: 0.32rem;
-  vertical-align: -0.08em;
+  vertical-align: -0.06em;
 }
 
 .chart {

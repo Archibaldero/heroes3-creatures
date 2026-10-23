@@ -42,7 +42,7 @@
   const tierLinks = document.createElement("div");
   tierLinks.className = "rail-links";
   const vizLinks = document.createElement("div");
-  vizLinks.className = "rail-links";
+  vizLinks.className = "rail-links legend";
   vizLinks.hidden = true;
   rail.append(pages, tierLinks, vizLinks);
 
@@ -58,10 +58,27 @@
 
   let refreshStatsNav = function () {};
 
+  const growthModes = [
+    ["fort", "Fort"],
+    ["citadel", "Citadel"],
+    ["castle", "Castle"],
+  ];
+
+  let growthMode = "fort";
+
+  function weeklyGrowth(base) {
+    if (growthMode === "citadel") return base + Math.floor(base / 2);
+    if (growthMode === "castle") return base * 2;
+    return base;
+  }
+
   const mast = document.createElement("header");
   mast.className = "masthead";
-  mast.innerHTML = "<h1>Creatures of one tier, across towns.</h1><p>Growth is the dwelling’s weekly base, before the Citadel and Castle bonuses. In each column, bold is the highest figure of the tier and italic is the lowest — every unit that shares it — base and upgraded together. Each end of a damage range is marked on its own.</p>";
-  statsView.append(mast);
+  mast.innerHTML = "<h1>Creatures of one tier, across towns.</h1><p>Growth is weekly at the selected town level. In each column, bold is the highest figure of the tier and italic is the lowest — every unit that shares it — base and upgraded together. Each end of a damage range is marked on its own.</p>";
+  const statsPicks = document.createElement("div");
+  statsPicks.className = "picks";
+  statsPicks.append(picker("Town development", growthModes, () => growthMode, setGrowthMode));
+  statsView.append(mast, statsPicks);
 
   for (const tier of data.tiers) {
     const section = document.createElement("section");
@@ -150,9 +167,11 @@
           cell.dataset.kind = "num";
           if (key === "dmg") fillDamage(cell, unit);
           else {
-            cell.dataset.value = String(unit[key]);
+            const value = key === "gr" && row.f !== "neutral" ? weeklyGrowth(unit.gr) : unit[key];
+            if (key === "gr" && row.f !== "neutral") cell.dataset.base = String(unit.gr);
+            cell.dataset.value = String(value);
             if (key === "gold") fillCost(cell, unit);
-            else cell.textContent = formatStat(unit, key);
+            else cell.textContent = formatStat(unit, key, value);
           }
           tr.append(cell);
         }
@@ -250,8 +269,8 @@
     });
   }
 
-  function formatStat(unit, key) {
-    return key === "ai" ? unit.ai.toLocaleString("en-US") : String(unit[key]);
+  function formatStat(unit, key, value = unit[key]) {
+    return key === "ai" ? value.toLocaleString("en-US") : String(value);
   }
 
   function markExtremes() {
@@ -273,13 +292,15 @@
         markDamage(section, units);
         continue;
       }
+      const cells = [...section.querySelectorAll('td[data-stat="' + key + '"]')];
       let min = Infinity;
       let max = -Infinity;
-      for (const unit of units) {
-        if (unit[key] < min) min = unit[key];
-        if (unit[key] > max) max = unit[key];
+      for (const cell of cells) {
+        const value = Number(cell.dataset.value);
+        if (value < min) min = value;
+        if (value > max) max = value;
       }
-      for (const cell of section.querySelectorAll('td[data-stat="' + key + '"]')) {
+      for (const cell of cells) {
         const value = Number(cell.dataset.value);
         cell.classList.toggle("is-max", value === max);
         cell.classList.toggle("is-min", value === min);
@@ -536,22 +557,24 @@
     { key: "gold", id: "cost", title: "Cost" },
   ];
 
-  const growthModes = [
-    ["fort", "Fort"],
-    ["citadel", "Citadel"],
-    ["castle", "Castle"],
-  ];
-
-  let growthMode = "fort";
   let creatureSide = "base";
-  let vizObserver = null;
-  let refreshVizNav = function () {};
   const chartsRoot = document.createElement("div");
 
-  function weeklyGrowth(base) {
-    if (growthMode === "citadel") return base + Math.floor(base / 2);
-    if (growthMode === "castle") return base * 2;
-    return base;
+  function setGrowthMode(mode) {
+    growthMode = mode;
+    for (const button of main.querySelectorAll('.growth[aria-label="Town development"] button')) {
+      const active = button.dataset.mode === mode;
+      button.classList.toggle("current", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    }
+    for (const cell of statsView.querySelectorAll('td[data-stat="gr"][data-base]')) {
+      const value = weeklyGrowth(Number(cell.dataset.base));
+      cell.dataset.value = String(value);
+      cell.textContent = String(value);
+    }
+    markExtremes();
+    scheduleSync();
+    renderCharts();
   }
 
   function unitStat(unit, key) {
@@ -609,6 +632,9 @@
     group.className = "growth";
     group.setAttribute("role", "group");
     group.setAttribute("aria-label", label);
+    const title = document.createElement("span");
+    title.textContent = label + ":";
+    group.append(title);
     for (const [mode, text] of modes) {
       const button = document.createElement("button");
       button.type = "button";
@@ -619,14 +645,13 @@
       button.setAttribute("aria-pressed", on ? "true" : "false");
       button.addEventListener("click", () => {
         if (chosen() === mode) return;
-        apply(mode);
         for (const other of group.querySelectorAll("button")) {
           const active = other.dataset.mode === mode;
           other.classList.toggle("current", active);
           other.setAttribute("aria-pressed", active ? "true" : "false");
         }
         tip.hidden = true;
-        renderCharts();
+        apply(mode);
       });
       group.append(button);
     }
@@ -642,35 +667,24 @@
     const picks = document.createElement("div");
     picks.className = "picks";
     picks.append(
-      picker("Creature", [
+      picker("Creature type", [
         ["base", "Base"],
         ["up", "Upgraded"],
         ["sea", "Upgraded (Sea Dogs)"],
       ], () => creatureSide, (mode) => {
         creatureSide = mode;
+        renderCharts();
       }),
-      picker("Town level", growthModes, () => growthMode, (mode) => {
-        growthMode = mode;
-      }),
+      picker("Town development", growthModes, () => growthMode, setGrowthMode),
     );
-    vizView.append(picks);
+    vizView.append(picks, chartsRoot);
 
-    const legend = document.createElement("div");
-    legend.className = "legend";
     for (let tier = 1; tier <= 7; tier += 1) {
       const item = document.createElement("span");
       const swatch = document.createElement("i");
       swatch.style.background = tierColor(tier);
       item.append(swatch, document.createTextNode("Tier " + tier));
-      legend.append(item);
-    }
-    vizView.append(legend, chartsRoot);
-
-    for (const stat of chartStats) {
-      const link = document.createElement("a");
-      link.href = "#viz-" + stat.id;
-      link.textContent = stat.title;
-      vizLinks.append(link);
+      vizLinks.append(item);
     }
     renderCharts();
   }
@@ -678,7 +692,6 @@
   function renderCharts() {
     chartsRoot.replaceChildren();
     for (const stat of chartStats) chartsRoot.append(chartSection(stat));
-    watchViz();
   }
 
   function chartSection(stat) {
@@ -807,38 +820,6 @@
     return wrap;
   }
 
-  function watchViz() {
-    if (vizObserver) vizObserver.disconnect();
-    const links = [...vizLinks.querySelectorAll("a")];
-    const sections = [...chartsRoot.querySelectorAll("section[id]")];
-    if (!sections.length) return;
-
-    function setCurrent(id) {
-      for (const link of links) link.classList.toggle("current", link.getAttribute("href") === "#" + id);
-    }
-
-    function sectionAtReadingLine() {
-      const line = 72;
-      let current = sections[0];
-      for (const section of sections) {
-        if (section.getBoundingClientRect().top <= line) current = section;
-      }
-      return current.id;
-    }
-
-    refreshVizNav = function () {
-      if (vizView.hidden) return;
-      setCurrent(sectionAtReadingLine());
-    };
-
-    vizObserver = new IntersectionObserver(() => {
-      refreshVizNav();
-    }, { threshold: [0, 0.25, 0.5, 1] });
-
-    for (const section of sections) vizObserver.observe(section);
-    refreshVizNav();
-  }
-
   const tip = document.createElement("div");
   tip.className = "tip";
   tip.setAttribute("role", "tooltip");
@@ -950,12 +931,7 @@
     }
     if (view === "viz") {
       tip.hidden = true;
-      requestAnimationFrame(() => {
-        const id = location.hash.slice(1);
-        if (id.startsWith("viz-")) document.getElementById(id)?.scrollIntoView();
-        else if (changed) window.scrollTo(0, 0);
-        refreshVizNav();
-      });
+      if (changed) requestAnimationFrame(() => window.scrollTo(0, 0));
     }
     if (view === "calc" && changed) {
       tip.hidden = true;
