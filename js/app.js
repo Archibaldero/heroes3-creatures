@@ -123,11 +123,11 @@
     syncColumns();
     syncRowHeights();
   });
-  document.fonts.ready.then(() => {
+    document.fonts.ready.then(() => {
     syncColumns();
     syncRowHeights();
     renderCharts();
-    alignVizLegend();
+    syncVizLegend();
   });
   watchSheetWidth();
 
@@ -639,9 +639,11 @@
     return max || 1;
   }
 
-  function alignVizLegend() {
+  function syncVizLegend() {
+    const show = !vizView.hidden && tierPresentation !== "separately";
+    vizLinks.hidden = !show;
     vizLinks.style.marginTop = "";
-    if (vizView.hidden || window.matchMedia("(max-width: 1100px)").matches) return;
+    if (!show || window.matchMedia("(max-width: 1100px)").matches) return;
     const target = chartsRoot.querySelector(".bars") || chartsRoot.firstElementChild;
     if (!target) return;
     const offset = target.getBoundingClientRect().top - vizLinks.getBoundingClientRect().top;
@@ -720,21 +722,20 @@
   function renderCharts() {
     chartsRoot.replaceChildren();
     for (const stat of chartStats) chartsRoot.append(chartSection(stat));
-    alignVizLegend();
+    syncVizLegend();
   }
 
   function chartSection(stat) {
     const section = document.createElement("section");
     section.className = "tier";
     section.id = "viz-" + stat.id;
-    const heading = document.createElement("h2");
-    heading.textContent = stat.title;
-    section.append(heading);
-
     if (tierPresentation === "separately") {
+      section.classList.add("split");
       section.append(chartSplit(stat));
     } else {
-      section.append(chartSide(stat, sideMax(stat.key)));
+      const heading = document.createElement("h2");
+      heading.textContent = stat.title;
+      section.append(heading, chartSide(stat, sideMax(stat.key)));
     }
     return section;
   }
@@ -857,27 +858,10 @@
     const grid = document.createElement("div");
     grid.className = "chart-split";
 
-    const labelsCol = document.createElement("div");
-    labelsCol.className = "chart";
-    const spacer = document.createElement("div");
-    spacer.className = "split-head";
-    spacer.setAttribute("aria-hidden", "true");
-    const labels = document.createElement("div");
-    labels.className = "bars split-labels";
-    for (const faction of data.factions) {
-      const label = document.createElement("div");
-      label.className = "bar-label";
-      const img = document.createElement("img");
-      img.alt = "";
-      img.src = "assets/factions/" + faction.id + ".png";
-      img.addEventListener("error", () => img.remove());
-      const name = document.createElement("span");
-      name.textContent = faction.name;
-      label.append(img, name);
-      labels.append(label);
-    }
-    labelsCol.append(spacer, labels);
-    grid.append(labelsCol);
+    const title = document.createElement("div");
+    title.className = "split-head";
+    title.textContent = stat.title;
+    grid.append(title);
 
     for (let tier = 1; tier <= 7; tier += 1) {
       const max = tierMax(stat.key, tier);
@@ -904,6 +888,18 @@
       bars.className = "bars bars-plain";
 
       for (const row of rows) {
+        const label = document.createElement("div");
+        label.className = "bar-label";
+        const unit = row.units[0] && row.units[0].unit;
+        if (unit) {
+          const img = document.createElement("img");
+          img.alt = unit.name;
+          img.title = unit.name;
+          img.src = "assets/units/" + unit.id + ".png";
+          img.addEventListener("error", () => img.remove());
+          label.append(img);
+        }
+
         const scale = document.createElement("div");
         scale.className = "bar-scale";
         const share = row.total / max;
@@ -950,7 +946,7 @@
         sum.textContent = row.text;
         sum.style.left = "calc((100% - " + reserve + "px) * " + share + " + 10px)";
         scale.append(bar, sum);
-        bars.append(scale);
+        bars.append(label, scale);
       }
 
       wrap.append(bars);
@@ -1047,7 +1043,7 @@
     vizView.hidden = view !== "viz";
     calcView.hidden = view !== "calc";
     tierLinks.hidden = view !== "stats";
-    vizLinks.hidden = view !== "viz";
+    vizLinks.hidden = view !== "viz" || tierPresentation === "separately";
     statsTab.classList.toggle("current", view === "stats");
     vizTab.classList.toggle("current", view === "viz");
     calcTab.classList.toggle("current", view === "calc");
@@ -1073,7 +1069,7 @@
       tip.hidden = true;
       requestAnimationFrame(() => {
         if (changed) window.scrollTo(0, 0);
-        alignVizLegend();
+        syncVizLegend();
       });
     }
     if (view === "calc" && changed) {
@@ -1466,7 +1462,7 @@
     window.addEventListener("resize", () => {
       if (unitPicker && !unitPicker.hidden && openSlot) placePicker(openSlot.button);
       if (rangesMenu && !rangesMenu.hidden && openCount) placeRanges(openCount.input.parentElement);
-      alignVizLegend();
+      syncVizLegend();
     });
     window.addEventListener("scroll", (event) => {
       if (rangesMenu && !rangesMenu.hidden && openCount && event.target !== rangesMenu) {

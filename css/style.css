@@ -326,7 +326,12 @@ td.ab {
   min-width: 0;
 }
 
+.tier.split {
+  margin-top: 1.35rem;
+}
+
 .chart-split {
+  --split-icon: 24px;
   display: grid;
   grid-template-columns: max-content repeat(7, minmax(0, 1fr));
   column-gap: 10px;
@@ -353,21 +358,36 @@ td.ab {
   width: 100%;
 }
 
-.bars.split-labels {
-  grid-template-columns: max-content;
-  width: auto;
+.bars-plain .bar-label {
+  height: var(--split-icon);
 }
 
-.bars.split-labels .bar-label {
-  height: 1.55rem;
-}
-
-.bars.split-labels .bar-label::after {
+.bars-plain .bar-label::after {
   display: none;
 }
 
-.bars-plain {
-  grid-template-columns: minmax(0, 1fr);
+.bars-plain .bar-label img {
+  height: var(--split-icon);
+  width: auto;
+  image-rendering: pixelated;
+}
+
+.bars-plain .bar-scale {
+  height: var(--split-icon);
+}
+
+.bars-plain .tick {
+  height: 100%;
+}
+
+.bars-plain .tier-line {
+  top: auto;
+  bottom: 0;
+  transform: none;
+}
+
+.bars-plain .bar-sum {
+  height: 100%;
 }
 
 .bars-plain .bar-scale::before {
@@ -382,7 +402,7 @@ td.ab {
 }
 
 .bars-plain .bar-scale:last-child::before {
-  bottom: 50%;
+  bottom: 0;
 }
 
 .bar-label {
