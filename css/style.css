@@ -330,10 +330,19 @@ td.ab {
   margin-top: 1.35rem;
 }
 
+.tier.split > h2 {
+  margin: 0 0 0.28rem;
+  font-weight: 400;
+  font-size: 0.72rem;
+  letter-spacing: normal;
+  font-variant: normal;
+  line-height: 1.35;
+}
+
 .chart-split {
   --split-icon: 12px;
   display: grid;
-  grid-template-columns: max-content repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   column-gap: 10px;
   align-items: start;
 }

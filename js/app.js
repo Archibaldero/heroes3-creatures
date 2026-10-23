@@ -731,7 +731,10 @@
     section.id = "viz-" + stat.id;
     if (tierPresentation === "separately") {
       section.classList.add("split");
-      section.append(chartSplit(stat));
+      const heading = document.createElement("h2");
+      heading.className = "split-head";
+      heading.textContent = stat.title;
+      section.append(heading, chartSplit(stat));
     } else {
       const heading = document.createElement("h2");
       heading.textContent = stat.title;
@@ -857,11 +860,6 @@
   function chartSplit(stat) {
     const grid = document.createElement("div");
     grid.className = "chart-split";
-
-    const title = document.createElement("div");
-    title.className = "split-head";
-    title.textContent = stat.title;
-    grid.append(title);
 
     for (let tier = 1; tier <= 7; tier += 1) {
       const max = tierMax(stat.key, tier);
