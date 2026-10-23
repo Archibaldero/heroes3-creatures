@@ -127,6 +127,7 @@
     syncColumns();
     syncRowHeights();
     renderCharts();
+    alignVizLegend();
   });
   watchSheetWidth();
 
@@ -558,6 +559,7 @@
   ];
 
   let creatureSide = "base";
+  let tierPresentation = "together";
   const chartsRoot = document.createElement("div");
 
   function setGrowthMode(mode) {
@@ -627,6 +629,25 @@
     return max || 1;
   }
 
+  function tierMax(key, tier) {
+    let max = 0;
+    for (const faction of data.factions) {
+      const units = sideUnits(faction.id, creatureSide).filter((item) => item.tier === tier);
+      const total = townTotal(units, key);
+      if (total > max) max = total;
+    }
+    return max || 1;
+  }
+
+  function alignVizLegend() {
+    vizLinks.style.marginTop = "";
+    if (vizView.hidden || window.matchMedia("(max-width: 1100px)").matches) return;
+    const target = chartsRoot.querySelector(".bars") || chartsRoot.firstElementChild;
+    if (!target) return;
+    const offset = target.getBoundingClientRect().top - vizLinks.getBoundingClientRect().top;
+    if (offset > 0) vizLinks.style.marginTop = Math.round(offset) + "px";
+  }
+
   function picker(label, modes, chosen, apply) {
     const group = document.createElement("div");
     group.className = "growth";
@@ -676,6 +697,13 @@
         renderCharts();
       }),
       picker("Town development", growthModes, () => growthMode, setGrowthMode),
+      picker("Present tiers", [
+        ["together", "Together"],
+        ["separately", "Separately"],
+      ], () => tierPresentation, (mode) => {
+        tierPresentation = mode;
+        renderCharts();
+      }),
     );
     vizView.append(picks, chartsRoot);
 
@@ -692,6 +720,7 @@
   function renderCharts() {
     chartsRoot.replaceChildren();
     for (const stat of chartStats) chartsRoot.append(chartSection(stat));
+    alignVizLegend();
   }
 
   function chartSection(stat) {
@@ -702,7 +731,11 @@
     heading.textContent = stat.title;
     section.append(heading);
 
-    section.append(chartSide(stat, sideMax(stat.key)));
+    if (tierPresentation === "separately") {
+      section.append(chartSplit(stat));
+    } else {
+      section.append(chartSide(stat, sideMax(stat.key)));
+    }
     return section;
   }
 
@@ -820,6 +853,101 @@
     return wrap;
   }
 
+  function chartSplit(stat) {
+    const grid = document.createElement("div");
+    grid.className = "chart-split";
+
+    const labels = document.createElement("div");
+    labels.className = "bars split-labels";
+    for (const faction of data.factions) {
+      const label = document.createElement("div");
+      label.className = "bar-label";
+      const img = document.createElement("img");
+      img.alt = "";
+      img.src = "assets/factions/" + faction.id + ".png";
+      img.addEventListener("error", () => img.remove());
+      const name = document.createElement("span");
+      name.textContent = faction.name;
+      label.append(img, name);
+      labels.append(label);
+    }
+    grid.append(labels);
+
+    for (let tier = 1; tier <= 7; tier += 1) {
+      const max = tierMax(stat.key, tier);
+      const wrap = document.createElement("div");
+      wrap.className = "chart";
+
+      const rows = data.factions.map((faction) => {
+        const units = sideUnits(faction.id, creatureSide).filter((item) => item.tier === tier);
+        const total = townTotal(units, stat.key);
+        return { faction, units, total, text: formatChartValue(total, stat.key) };
+      });
+      let widest = 0;
+      for (const row of rows) widest = Math.max(widest, textWidth(row.text));
+      const reserve = widest + 10;
+
+      const bars = document.createElement("div");
+      bars.className = "bars bars-plain";
+      const color = tierColor(tier);
+
+      for (const row of rows) {
+        const scale = document.createElement("div");
+        scale.className = "bar-scale";
+        const share = row.total / max;
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        bar.style.width = "calc((100% - " + reserve + "px) * " + share + ")";
+
+        let cursor = 0;
+        for (const item of row.units) {
+          const count = weeklyGrowth(item.unit.gr);
+          const value = unitStat(item.unit, stat.key);
+          for (let i = 0; i < count; i += 1) {
+            const block = document.createElement("span");
+            block.className = "block";
+            const start = row.total ? (cursor / row.total) * 100 : 0;
+            const slice = row.total ? (value / row.total) * 100 : 0;
+            block.style.left = start + "%";
+            block.style.width = slice + "%";
+            block.dataset.name = item.unit.name;
+            block.dataset.value = formatChartValue(value, stat.key);
+            block.dataset.stat = stat.title;
+            const tick = document.createElement("span");
+            tick.className = "tick";
+            tick.style.background = color;
+            block.append(tick);
+            bar.append(block);
+            cursor += value;
+          }
+        }
+
+        const seg = document.createElement("div");
+        seg.className = "tier-seg";
+        seg.style.left = "0%";
+        seg.style.width = "100%";
+        const line = document.createElement("span");
+        line.className = "tier-line";
+        line.style.background = color;
+        seg.append(line);
+        bar.append(seg);
+
+        const sum = document.createElement("div");
+        sum.className = "bar-sum";
+        sum.style.color = color;
+        sum.textContent = row.text;
+        sum.style.left = "calc((100% - " + reserve + "px) * " + share + " + 10px)";
+        scale.append(bar, sum);
+        bars.append(scale);
+      }
+
+      wrap.append(bars);
+      grid.append(wrap);
+    }
+
+    return grid;
+  }
+
   const tip = document.createElement("div");
   tip.className = "tip";
   tip.setAttribute("role", "tooltip");
@@ -931,7 +1059,10 @@
     }
     if (view === "viz") {
       tip.hidden = true;
-      if (changed) requestAnimationFrame(() => window.scrollTo(0, 0));
+      requestAnimationFrame(() => {
+        if (changed) window.scrollTo(0, 0);
+        alignVizLegend();
+      });
     }
     if (view === "calc" && changed) {
       tip.hidden = true;
@@ -1323,6 +1454,7 @@
     window.addEventListener("resize", () => {
       if (unitPicker && !unitPicker.hidden && openSlot) placePicker(openSlot.button);
       if (rangesMenu && !rangesMenu.hidden && openCount) placeRanges(openCount.input.parentElement);
+      alignVizLegend();
     });
     window.addEventListener("scroll", (event) => {
       if (rangesMenu && !rangesMenu.hidden && openCount && event.target !== rangesMenu) {

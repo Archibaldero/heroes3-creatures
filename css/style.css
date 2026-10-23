@@ -326,6 +326,27 @@ td.ab {
   min-width: 0;
 }
 
+.chart-split {
+  display: grid;
+  grid-template-columns: max-content repeat(7, minmax(0, 1fr));
+  column-gap: 0.9rem;
+  align-items: start;
+}
+
+.split-labels {
+  grid-template-columns: max-content;
+  width: auto;
+  margin-right: -0.9rem;
+}
+
+.split-labels .bar-label {
+  height: 1.55rem;
+}
+
+.split-labels .bar-label::after {
+  display: none;
+}
+
 .bars {
   --col-gap: 10px;
   --row-gap: 0.22rem;
@@ -335,6 +356,26 @@ td.ab {
   row-gap: var(--row-gap);
   align-items: center;
   width: 100%;
+}
+
+.bars-plain {
+  grid-template-columns: minmax(0, 1fr);
+  padding-left: var(--col-gap);
+}
+
+.bars-plain .bar-scale::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: calc(var(--row-gap) * -1 - 1px);
+  left: calc(var(--col-gap) * -1);
+  width: 1px;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+.bars-plain .bar-scale:last-child::before {
+  bottom: 0;
 }
 
 .bar-label {
@@ -423,7 +464,7 @@ td.ab {
   height: 50%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   font-variant-numeric: tabular-nums;
   font-size: 0.65rem;
   line-height: 1;
